@@ -1,0 +1,64 @@
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+using namespace std;
+
+string encode(const string& input);
+string encodeRun(char ch, int count); 
+
+int main()
+{
+	string input;
+	cout << "Please enter a string to be encoded:" <<endl;
+	cin >> input;
+	string encoded = encode(input);
+	cout << "The encoded string is: " << encoded << endl;
+	return 0;
+}
+
+string encode(const string& input) 
+{
+    if (input.empty()) {
+        return ""; // Return an empty string for empty input
+    }
+
+    ostringstream result;
+    char currentChar = input[0];
+    int count = 1;
+
+    for (size_t i = 1; i < input.length(); i++) 
+    {
+        char nextChar = input[i];
+
+        if (nextChar == currentChar) 
+        {
+            count++;
+        }
+        else 
+        {
+            result << encodeRun(currentChar, count);
+            currentChar = nextChar;
+            count = 1;
+        }
+    }
+
+    // Handle the last run
+    result << encodeRun(currentChar, count);
+
+    return result.str();
+}
+
+string encodeRun(char ch, int count) 
+{
+    ostringstream result;
+    if (count > 4) 
+    {
+        result << '/' << setw(2) << setfill('0') << count << ch;
+    }
+    else 
+    {
+        result << string(count, ch);
+    }
+    return result.str();
+}
