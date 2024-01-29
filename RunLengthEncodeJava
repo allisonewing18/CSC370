@@ -1,0 +1,63 @@
+package runlengthencode;
+import java.util.Scanner;
+/**
+ * @author allis
+ */
+public class RunLengthEncode 
+{
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String[] args) 
+    {
+        Scanner keyboard = new Scanner(System.in);
+        System.out.println("Please enter a string to be encoded:");
+        String string = keyboard.nextLine();
+        String encoded = encode(string);
+        System.out.println("The encoded string is: " + encoded);
+    }
+    public static String encode(String string)
+    {
+        if (string == null || string.isEmpty()) 
+        {
+            return ""; // Return an empty string for null or empty input
+        }
+        StringBuilder result = new StringBuilder();
+        char currentChar = string.charAt(0);
+        int count = 1;
+
+        for (int i = 1; i < string.length(); i++) 
+        {
+            char nextChar = string.charAt(i);
+
+            if (nextChar == currentChar) 
+            {
+                count++;
+            } 
+            else 
+            {
+                result.append(encodeRun(currentChar, count));
+                currentChar = nextChar;
+                count = 1;
+            }
+        }
+
+        result.append(encodeRun(currentChar, count));
+
+        return result.toString();
+    }
+
+    private static String encodeRun(char ch, int count) 
+    {
+        if (count > 4) 
+        {
+            return String.format("/%02d%s", count, ch);
+        } 
+        else 
+        {
+            return String.valueOf(ch).repeat(count);
+        }
+    }
+    
+}
