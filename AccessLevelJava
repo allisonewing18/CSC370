@@ -1,0 +1,51 @@
+package accesslevel;
+import java.util.Scanner;
+/**
+ *
+ * @author allis
+ */
+public class AccessLevel 
+{
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String[] args) 
+    {
+        int[] rights = new int[51];
+        int minpermission;
+        int input;
+        int numelements = 0;
+        String result = "";
+        Scanner keyboard = new Scanner(System.in);
+        System.out.println("Please enter the minimum permission value:");
+        minpermission = keyboard.nextInt();
+        if (minpermission > 100 | minpermission < 0)
+            System.out.println("Minimun permission must be be between 0 and 100");
+        System.out.println("Please enter the numbers you would like to check, one at a time");
+        System.out.println("(When you are finished, enter -1):");
+        int i = 0;
+        do 
+        {
+            
+            input = keyboard.nextInt();
+            rights[i] = input;
+            i++;
+            numelements++;
+        } while (input != -1);
+        for (int j = 0; j < numelements-1; j++) //the - 1 in the second part is to get rid of the -1 in the array
+        {
+            if (rights[j] >= minpermission)
+            {
+                result = result + 'A';
+            }
+            if (rights[j] < minpermission)
+            {
+                result = result + 'D';
+            }
+
+        }
+        System.out.println("The resulting string is " + result);
+
+    }
+    
+}
