@@ -1,0 +1,484 @@
+import java.util.ArrayList;
+public class EwingCompiler 
+{
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String[] args) 
+    {
+        compilerpt1 compile = new compilerpt1();
+        compile.DataTypes();
+        compile.ControlStructures();
+        int sum = compile.sum(4, 3);
+        System.out.println("Sum is " + sum);
+        String testcode = "4 * 3 + 2"; //4 * 3 + 2      int x = 8     4/2 
+        ArrayList<Token> tokens = LexicalAnalyzer.analyze(testcode);
+        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer();
+        for (Token token : tokens) 
+        {
+            System.out.println(token); // Display tokens
+            if (token.type == TokenType.Keyword && token.value.equals("int")) 
+            {
+                int nextIndex = tokens.indexOf(token) + 1;
+                if (nextIndex < tokens.size() && tokens.get(nextIndex).type == TokenType.Identifier) 
+                {
+                    String variableName = tokens.get(nextIndex).value;
+                    semanticAnalyzer.addVariable(variableName, "int");
+                }
+            }
+        }
+        Parser parsing = new Parser(tokens); //create parser
+        Node parseTree = parsing.parseExpression(); 
+        System.out.println("Completed Syntax Tree:"); 
+        printTree(parseTree,0);
+        
+        semanticAnalyzer.analyze(parseTree);
+        
+        if (semanticAnalyzer.hasError()) //true equals error
+        {
+            System.out.println("Semantic errors detected. Compilation stopped");
+        } 
+        else //false equals no error
+        {
+            System.out.println("Successful Semantic analysis. Compilation continuing...");
+            ThreeAddressGenerator threeaddress = new ThreeAddressGenerator();
+            String threeaddresscode = threeaddress.generate(parseTree);
+            System.out.println("Three-Address Code: " + threeaddresscode);
+        }
+        
+            
+    }
+    private static void printTree(Node node, int indent) //print actual parse tree
+    {
+        if (node instanceof BinaryExpressionNode) 
+        {
+            BinaryExpressionNode binaryNode = (BinaryExpressionNode) node;
+            printIndent(indent);
+            System.out.println("Operator: " + binaryNode.operator.value);
+            printIndent(indent + 1);
+            System.out.println("Left of Operator:");
+            printTree(binaryNode.left, indent + 2);
+            printIndent(indent + 1);
+            System.out.println("Right of Operator:");
+            printTree(binaryNode.right, indent + 2);
+        } 
+        else if (node instanceof TokenNode) 
+        {
+            TokenNode tokenNode = (TokenNode) node;
+            if (tokenNode.token.type == TokenType.Keyword) 
+            {
+                printIndent(indent);
+                System.out.println("Keyword: " + tokenNode.token.value);
+            } 
+            else 
+            {
+                printIndent(indent);
+                System.out.println("Literal: " + tokenNode.token.value);
+            }
+        }
+    }
+
+    private static void printIndent(int indent) //indent to help with spacing of parse tree
+    {
+        for (int i = 0; i < indent; i++) 
+        {
+            System.out.print("  ");
+        }
+    }
+}
+public class compilerpt1 
+{
+    public void DataTypes() //define data types
+    {
+        int myInt;
+        double myDouble;
+        float myFloat;
+        char myChar;
+        String myString;
+        boolean myBoolean;
+    }
+    public void ControlStructures() //boolean, case/switch, and for loops
+    {
+        boolean Value = false; //demo
+        if (Value)
+            System.out.println("Value is true");
+        else
+            System.out.println("Value is false");
+        
+        char letter = 'A'; //demo
+        switch(letter)
+        {
+            case 'A':
+                System.out.println("A");
+                break;
+            case 'B':
+                System.out.println("B");
+                break;
+            case 'C':
+                System.out.println("C");
+                break;
+            default:
+                System.out.println("Not A, B, or C");
+        }
+        
+        for(int i = 1; i <= 5; i++)
+        {
+            System.out.println(i);
+        }
+        int x = 0;
+        do 
+        {
+            x+=1;
+            System.out.println(x);
+        } while (x < 5);
+                
+        
+    }
+    public int sum(int num1, int num2) //simple function to be called
+    {
+        int sum = num1 + num2;
+        return sum;
+    }
+}
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class LexicalAnalyzer
+{
+    public static ArrayList<Token> analyze (String input)
+    {
+        ArrayList<Token> tokens = new ArrayList<>();
+        // Define regular expressions for tokens
+        String regexKeywords = "(if|else|while|for|int|float|double|char|"
+                + "boolean)";
+        String regexIdentifiers = "[a-zA-Z]+\\w*";
+        String regexLiterals = "\"[^\"]*\"|'[^']*'|\\b\\d+(\\.\\d+)?";
+        String regexOperators = "\\+|\\-|\\*|\\/|\\%|\\=|\\>|\\<|\\>=|\\<=|\\==|"
+                + "\\!=|\\&\\&|\\|\\|";
+        String regexPunctuation = "[\\(\\)\\{\\}\\[\\];,]";
+        
+        // Combine the regular expressions
+        String regexAll = String.join("|", regexKeywords,
+                regexIdentifiers, regexLiterals, regexOperators,
+                regexPunctuation);
+        Pattern pattern = Pattern.compile(regexAll);
+        Matcher matcher = pattern.matcher(input);
+        
+        // Tokenize input
+        while (matcher.find()) 
+        {
+            String match = matcher.group();
+            TokenType type = getTokenType(match);
+            tokens.add(new Token(type, match));
+            
+        }
+        
+        return tokens;
+    }
+    private static TokenType getTokenType(String token) 
+    {
+        if (token.matches("(if|else|while|for|int|float|double|char|boolean)")) 
+        {
+            return TokenType.Keyword;
+        } 
+        else if (token.matches("[a-zA-Z]+\\w*")) 
+        {
+            return TokenType.Identifier;
+        } 
+        else if (token.matches("\"[^\"]*\"|'[^']*'|\\b\\d+(\\.\\d+)?\\b")) 
+        {
+            return TokenType.Literal;
+        } 
+        else if (token.matches("\\+|\\-|\\*|\\/|\\%|\\=|\\>|\\<|\\>=|\\<=|"
+                + "\\==|\\!=|\\&\\&|\\|\\|")) 
+        {
+            return TokenType.Operator;
+        } 
+        else if (token.matches("[\\(\\)\\{\\}\\[\\];,]")) 
+        {
+            return TokenType.Punctuation;
+        } 
+        else 
+        {
+            return TokenType.Unknown;
+        }
+    }
+}
+class Token 
+{
+    TokenType type;
+    String value;
+    
+    public Token(TokenType type, String value) 
+    {
+        this.type = type;
+        this.value = value;
+    }
+    
+    public String toString() 
+    {
+        return value + " is a " + type; //what goes back to main method
+    }
+}
+
+enum TokenType 
+{
+    Keyword,
+    Identifier,
+    Literal,
+    Operator,
+    Punctuation,
+    Unknown
+}
+import java.util.ArrayList;
+import java.util.Stack;
+public class Parser
+{
+    private ArrayList<Token> tokens;
+    private int currentTokenIndex;
+
+    public Parser(ArrayList<Token> tokens) 
+    {
+        this.tokens = tokens;
+        this.currentTokenIndex = 0;
+    }
+
+    public Node parseExpression() 
+    {
+        Stack<Node> operandStack = new Stack<>();
+        Stack<Token> operatorStack = new Stack<>();
+
+        while (currentTokenIndex < tokens.size()) 
+        {
+            Token token = tokens.get(currentTokenIndex);
+            if (token.type == TokenType.Keyword || token.type == TokenType.Literal || token.type == TokenType.Identifier) 
+            {
+                operandStack.push(new TokenNode(token));
+            } 
+            else if (token.type == TokenType.Operator) 
+            {
+                while (!operatorStack.isEmpty() && precedence(operatorStack.peek()) >= precedence(token)) 
+                {
+                    performOperation(operandStack, operatorStack);
+                }
+                operatorStack.push(token);
+            }
+            currentTokenIndex++;
+        }
+
+        while (!operatorStack.isEmpty()) 
+        {
+            performOperation(operandStack, operatorStack);
+        }
+
+        return operandStack.pop();
+    }
+
+    private void performOperation(Stack<Node> operandStack, Stack<Token> operatorStack) 
+    {
+        Token operatorToken = operatorStack.pop();
+        Node right = operandStack.pop();
+        Node left = operandStack.pop();
+        operandStack.push(new BinaryExpressionNode(left, operatorToken, right));
+    }
+
+    private int precedence(Token operator) 
+    {
+        switch (operator.value) 
+        {
+            case "+":
+            case "-":
+                return 1;
+            case "*":
+            case "/":
+            case "%":
+                return 2; //higher number, higher precedence
+            default:
+                return 0;
+        }
+    }
+     
+}
+
+class Node {}
+
+class BinaryExpressionNode extends Node 
+{
+    Node left;
+    Token operator;
+    Node right;
+
+    public BinaryExpressionNode(Node left, Token operator, Node right) 
+    {
+        this.left = left;
+        this.operator = operator;
+        this.right = right;
+    }
+}
+
+class TokenNode extends Node 
+{
+    Token token;
+
+    public TokenNode(Token token) 
+    {
+        this.token = token;
+    }
+}
+import java.util.HashMap;
+public class SemanticAnalyzer 
+{
+        private HashMap<String, String> symbolTable; //Store variable names and their types
+    private boolean hasError; // says if any semantic errors occurred
+
+    public SemanticAnalyzer() 
+    {
+        this.symbolTable = new HashMap<>();
+        this.hasError = false;
+    }
+
+    public void analyze(Node parseTree) 
+    {
+        traverse(parseTree);
+    }
+
+    private void traverse(Node node) 
+    {
+        if (node instanceof BinaryExpressionNode) 
+        {
+            BinaryExpressionNode binaryNode = (BinaryExpressionNode) node;
+            traverse(binaryNode.left);
+            traverse(binaryNode.right);
+            checkOperation(binaryNode);
+        } 
+        else if (node instanceof TokenNode) 
+        {
+            TokenNode tokenNode = (TokenNode) node;
+            checkIdentifier(tokenNode.token);
+        }
+    }
+
+    private void checkOperation(BinaryExpressionNode node) 
+    {
+        Token operator = node.operator;
+        Token leftToken = ((TokenNode) node.left).token;
+        Token rightToken = ((TokenNode) node.right).token;
+
+        // Check for valid operations and type compatibility
+        if (operator.value.equals("+") || operator.value.equals("-") || operator.value.equals("*") || operator.value.equals("/")) 
+        {
+            if (leftToken.value.equals(1) ||leftToken.value.equals(2) ||leftToken.value.equals(3)
+                    || leftToken.value.equals(4) || leftToken.value.equals(5) || leftToken.value.equals(6) || leftToken.value.equals(7)
+                    || leftToken.value.equals(8) || leftToken.value.equals(9) || rightToken.value.equals("1")
+                    || rightToken.value.equals("2")|| rightToken.value.equals("3")|| rightToken.value.equals("4")|| rightToken.value.equals("5")
+                    || rightToken.value.equals("6")|| rightToken.value.equals("7")|| rightToken.value.equals("8")|| rightToken.value.equals("9"))  
+            {
+                hasError = false;
+            }
+            else
+            {
+                System.out.println("Type Error: Operation " + operator.value + " requires operands of the same data type.");
+                    hasError = true;
+            }
+                
+        }
+    }
+
+    private void checkIdentifier(Token token) 
+    {
+        if (token.type == TokenType.Identifier) 
+        {
+            String identifier = token.value;
+            if (!symbolTable.containsKey(identifier)) 
+            {
+                System.out.println("Semantic Error: Variable '" + identifier + "' is undefined.");
+                hasError = true;
+            }
+        }
+    }
+
+    public void addVariable(String identifier, String type) 
+    {
+        symbolTable.put(identifier, type);
+    }
+
+    public boolean hasError() 
+    {
+        return hasError;
+    }
+}
+import java.util.HashMap;
+public class ThreeAddressGenerator 
+{
+    private int temporaryCounter = 1;
+    private StringBuilder threeAddressCode = new StringBuilder();
+    private HashMap<String, String> symbolTable = new HashMap<>();
+
+    public String generate(Node parseTree) 
+    {
+        traverse(parseTree);
+        return threeAddressCode.toString();
+    }
+
+    private void traverse(Node node) 
+    {
+        if (node instanceof BinaryExpressionNode) 
+        {
+            BinaryExpressionNode binaryNode = (BinaryExpressionNode) node;
+            traverse(binaryNode.left);
+            traverse(binaryNode.right);
+            generateOperation(binaryNode);
+        } 
+        else if (node instanceof TokenNode) 
+        {
+            TokenNode tokenNode = (TokenNode) node;
+            generateIdentifier(tokenNode.token);
+        }
+    }
+
+    private void generateOperation(BinaryExpressionNode node) 
+    {
+        Token operator = node.operator;
+        Token leftToken = ((TokenNode) node.left).token;
+        Token rightToken = ((TokenNode) node.right).token;
+
+        String result = "$T" + temporaryCounter++;
+        String leftOperand = leftToken.value;
+        String rightOperand = rightToken.value;
+
+        switch (operator.value) 
+        {
+            case "+":
+                threeAddressCode.append(result).append(" = ").append(leftOperand).append(" + ").append(rightOperand).append("\n");
+                break;
+            case "-":
+                threeAddressCode.append(result).append(" = ").append(leftOperand).append(" - ").append(rightOperand).append("\n");
+                break;
+            case "*":
+                threeAddressCode.append(result).append(" = ").append(leftOperand).append(" * ").append(rightOperand).append("\n");
+                break;
+            case "/":
+                threeAddressCode.append(result).append(" = ").append(leftOperand).append(" / ").append(rightOperand).append("\n");
+                break;
+        }
+
+        // Update symbol table
+        symbolTable.put(result, "int");
+    }
+
+    private void generateIdentifier(Token token) 
+    {
+        if (token.type == TokenType.Identifier) 
+        {
+            // Assume identifier is a constant if not in the symbol table
+            String identifier = token.value;
+            if (!symbolTable.containsKey(identifier)) 
+            {
+                symbolTable.put(identifier, "int");
+            }
+        }
+    }
+    
+}
